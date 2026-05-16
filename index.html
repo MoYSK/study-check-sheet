@@ -208,6 +208,15 @@
       text-shadow: 0 0 8px rgba(255,255,255,0.8);
     }
 
+    /* 優先実施日をハイライト */
+    .priority-cell {
+      background-color: #fff9db !important; /* 薄い黄色 */
+    }
+    .priority-cell.today-col {
+      background-color: #fff3bf !important; /* 今日かつ優先日の場合は少し濃く */
+      box-shadow: inset 2px 0 0 #a5b4fc, inset -2px 0 0 #a5b4fc;
+    }
+
     /* 進捗バー */
     .progress-section {
       padding: 8px 16px;
@@ -326,7 +335,7 @@
     transition:opacity 0.3s;pointer-events:none;"></div>
 
   <div class="footer">
-    学習チェックシート v3.2
+    学習チェックシート v3.4
   </div>
 
   <script>
@@ -551,7 +560,15 @@
         DAY_NAMES.forEach((_, dow) => {
           const key = `${sub.id}-${dow}`;
           const done = weekData[key] === true || weekData[key] === "TRUE";
-          const cls = (isThisWeek && dow === todayDow) ? ' today-col' : '';
+          let cls = (isThisWeek && dow === todayDow) ? ' today-col' : '';
+
+          // 優先日判定 (v3.3)
+          // 算数 授業復習(ID:1): 水(2), 木(3), 金(4)
+          // 国理社 授業復習(ID:5,9,12): 金(4), 土(5), 日(6)
+          const isPriority = (sub.id === 1 && (dow === 2 || dow === 3 || dow === 4)) || 
+                             ((sub.id === 5 || sub.id === 9 || sub.id === 12) && (dow === 4 || dow === 5 || dow === 6));
+          if (isPriority) cls += ' priority-cell';
+
           const isFuture = isThisWeek ? dow > todayDow : !isPastWeek;
           const icon = done ? '✅' : (isFuture ? '─' : '⬜');
           const statusCls = done ? 'done' : (isFuture ? 'future' : 'not-done');
