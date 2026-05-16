@@ -986,37 +986,51 @@
     }
 
     async function claimTicket(weekKey) {
-      // 2重リクエスト防止
+      if (rewardedWeeks.includes(weekKey)) return; // 既に処理中または完了済み
+      
+      // 楽観的更新
       rewardedWeeks.push(weekKey);
       
       try {
         const res = await apiGet('addTicket', { weekStart: weekKey });
         if (res.success) {
           totalTickets = res.totalTickets;
+          // キャッシュも即座に更新
+          saveCache('user_stats', { total_tickets: totalTickets, rewarded_weeks: rewardedWeeks.join(',') });
           updateTicketStats();
-          showTicketPopup();
+          if (!res.already) {
+            showTicketPopup();
+          }
+        } else {
+          // サーバー側で失敗した場合は元に戻す
+          rewardedWeeks = rewardedWeeks.filter(w => w !== weekKey);
+          console.error("Ticket claim failed on server", res.error);
         }
       } catch (e) {
         rewardedWeeks = rewardedWeeks.filter(w => w !== weekKey);
-        console.error("Ticket claim failed", e);
+        console.error("Ticket claim network error", e);
       }
     }
 
     async function revokeTicket(weekKey) {
-      // ローカルで即フラグを下ろす
+      if (!rewardedWeeks.includes(weekKey)) return;
+      
+      // 楽観的更新
       rewardedWeeks = rewardedWeeks.filter(w => w !== weekKey);
       
       try {
         const res = await apiGet('removeTicket', { weekStart: weekKey });
         if (res.success) {
           totalTickets = res.totalTickets;
+          saveCache('user_stats', { total_tickets: totalTickets, rewarded_weeks: rewardedWeeks.join(',') });
           updateTicketStats();
           showToast('🎫 チケットが1枚戻りました', '#f44336');
+        } else {
+          rewardedWeeks.push(weekKey);
         }
       } catch (e) {
-        // 失敗時はフラグを戻す
         rewardedWeeks.push(weekKey);
-        console.error("Ticket revoke failed", e);
+        console.error("Ticket revoke network error", e);
       }
     }
 
