@@ -977,6 +977,11 @@
         }
       } else {
         stopCelebration();
+        // 100%を下回った時の没収チェック (v3.7.1)
+        const weekKey = formatDate(currentWeekStart);
+        if (rewardedWeeks.includes(weekKey)) {
+          revokeTicket(weekKey);
+        }
       }
     }
 
@@ -994,6 +999,24 @@
       } catch (e) {
         rewardedWeeks = rewardedWeeks.filter(w => w !== weekKey);
         console.error("Ticket claim failed", e);
+      }
+    }
+
+    async function revokeTicket(weekKey) {
+      // ローカルで即フラグを下ろす
+      rewardedWeeks = rewardedWeeks.filter(w => w !== weekKey);
+      
+      try {
+        const res = await apiGet('removeTicket', { weekStart: weekKey });
+        if (res.success) {
+          totalTickets = res.totalTickets;
+          updateTicketStats();
+          showToast('🎫 チケットが1枚戻りました', '#f44336');
+        }
+      } catch (e) {
+        // 失敗時はフラグを戻す
+        rewardedWeeks.push(weekKey);
+        console.error("Ticket revoke failed", e);
       }
     }
 
