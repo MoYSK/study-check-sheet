@@ -1,0 +1,777 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <title>学習チェックシート</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', 'Hiragino Sans', 'Meiryo', sans-serif;
+      background: #f0f4ff;
+      color: #333;
+      min-height: 100vh;
+    }
+
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 8px 16px;
+      text-align: center;
+    }
+
+    .header h1 {
+      font-size: 1.1rem;
+      margin-bottom: 2px;
+    }
+
+    .header .week-label {
+      font-size: 0.75rem;
+      opacity: 0.9;
+    }
+
+    .week-nav {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 12px;
+      padding: 6px 16px;
+      background: white;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .week-nav button {
+      background: #667eea;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 8px 16px;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .week-nav button:hover { background: #5a6fd6; }
+    .week-nav button:active { background: #4c5ec2; }
+
+    .week-nav .week-display {
+      font-size: 1rem;
+      font-weight: bold;
+      min-width: 180px;
+      text-align: center;
+    }
+
+    .check-table-container {
+      padding: 12px;
+      overflow-x: auto;
+    }
+
+    table.check-table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+
+    table.check-table th {
+      background: #667eea;
+      color: white;
+      padding: 4px 2px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-align: center;
+      white-space: nowrap;
+    }
+
+    table.check-table th.subject-header {
+      background: #764ba2;
+      min-width: 50px;
+    }
+
+    table.check-table td {
+      padding: 2px 2px;
+      text-align: center;
+      border-bottom: 1px solid #eee;
+      font-size: 0.85rem;
+    }
+
+    table.check-table tr:last-child td { border-bottom: none; }
+
+    table.check-table td.subject-name {
+      font-weight: 600;
+      text-align: left;
+      padding-left: 6px;
+      background: #f8f9ff;
+      white-space: nowrap;
+      font-size: 0.72rem;
+      cursor: default;
+    }
+
+    /* カテゴリ区切り線 */
+    tr.category-border td {
+      border-top: 2px solid #c7d2fe;
+    }
+
+    /* カテゴリヘッダー行 */
+    tr.category-header td {
+      font-weight: 700;
+      font-size: 0.72rem;
+      padding: 3px 6px;
+      text-align: left;
+    }
+
+    /* カテゴリカラー */
+    .cat-算数 td.cat-header { background: #dbeafe; color: #1e40af; border-bottom: 1px solid #93c5fd; }
+    .cat-算数 td.subject-name { background: #eff6ff; border-left: 3px solid #60a5fa; }
+    .cat-国語 td.cat-header { background: #fce7f3; color: #9d174d; border-bottom: 1px solid #f9a8d4; }
+    .cat-国語 td.subject-name { background: #fdf2f8; border-left: 3px solid #f472b6; }
+    .cat-理科 td.cat-header { background: #dcfce7; color: #166534; border-bottom: 1px solid #86efac; }
+    .cat-理科 td.subject-name { background: #f0fdf4; border-left: 3px solid #4ade80; }
+    .cat-社会 td.cat-header { background: #ffedd5; color: #9a3412; border-bottom: 1px solid #fdba74; }
+    .cat-社会 td.subject-name { background: #fff7ed; border-left: 3px solid #fb923c; }
+    .cat-テスト復習 td.cat-header { background: #f3f4f6; color: #374151; border-bottom: 1px solid #d1d5db; }
+    .cat-テスト復習 td.subject-name { background: #f9fafb; border-left: 3px solid #9ca3af; }
+
+    .star-badge {
+      cursor: pointer;
+      font-size: 0.85rem;
+      margin-left: 2px;
+      display: inline-block;
+      transition: transform 0.2s;
+    }
+
+    .bulk-star {
+      cursor: pointer;
+      font-size: 0.6rem;
+      margin-left: 8px;
+      padding: 1px 5px;
+      border-radius: 8px;
+      border: 1px solid currentColor;
+      opacity: 0.8;
+      vertical-align: middle;
+    }
+    .bulk-star:active { opacity: 1; transform: scale(0.95); }
+    .bulk-star-off { color: #6366f1; }
+    .bulk-star-on { color: #dc2626; }
+    .star-badge:active { transform: scale(1.3); }
+    .star-badge.earned {
+      filter: drop-shadow(0 0 3px #f59e0b);
+    }
+    .star-badge.just-earned {
+      animation: starPop 0.3s ease-out;
+    }
+    @keyframes starPop {
+      0% { transform: scale(0.5); }
+      50% { transform: scale(1.4); }
+      100% { transform: scale(1); }
+    }
+
+    /* チェックボックスをカスタム */
+    .check-cell {
+      cursor: pointer;
+      user-select: none;
+      font-size: 1.1rem;
+      min-width: 30px;
+      transition: transform 0.15s;
+    }
+
+    .check-cell:active { transform: scale(0.85); }
+
+    .check-cell.done {
+      color: #10b981;
+    }
+
+    .check-cell.not-done {
+      color: #d1d5db;
+    }
+
+    .check-cell.future {
+      color: #e5e7eb;
+      cursor: default;
+      pointer-events: none;
+    }
+
+    /* 今日の列をハイライト */
+    .today-col {
+      background: #eef2ff !important;
+      box-shadow: inset 2px 0 0 #a5b4fc, inset -2px 0 0 #a5b4fc;
+    }
+    th.today-col {
+      background: #4f5fd5 !important;
+      font-size: 0.95rem !important;
+      text-shadow: 0 0 8px rgba(255,255,255,0.8);
+    }
+
+    /* 進捗バー */
+    .progress-section {
+      padding: 8px 16px;
+    }
+
+    .progress-bar-container {
+      background: white;
+      border-radius: 8px;
+      padding: 8px 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+
+    .progress-label {
+      font-size: 0.9rem;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .progress-bar {
+      width: 100%;
+      height: 24px;
+      background: #e5e7eb;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #10b981, #34d399);
+      border-radius: 12px;
+      transition: width 0.5s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 0.8rem;
+      font-weight: bold;
+      min-width: 40px;
+    }
+
+    /* ローディング */
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: #999;
+    }
+
+    .loading .spinner {
+      display: inline-block;
+      width: 40px;
+      height: 40px;
+      border: 4px solid #e5e7eb;
+      border-top: 4px solid #667eea;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* エラー */
+    .error-msg {
+      background: #fee2e2;
+      color: #dc2626;
+      padding: 12px;
+      border-radius: 8px;
+      margin: 12px 20px;
+      text-align: center;
+    }
+
+    /* フッター */
+    .footer {
+      text-align: center;
+      padding: 20px;
+      color: #999;
+      font-size: 0.75rem;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <h1>📚 学習チェックシート</h1>
+    <div class="week-label" id="weekLabel"></div>
+  </div>
+
+  <div class="week-nav">
+    <button onclick="changeWeek(-1)">◀ 前週</button>
+    <div class="week-display" id="weekDisplay"></div>
+    <button onclick="changeWeek(1)">次週 ▶</button>
+  </div>
+
+  <div id="errorArea"></div>
+
+  <div class="check-table-container">
+    <div id="loadingArea" class="loading">
+      <div class="spinner"></div>
+      <p style="margin-top:12px">読み込み中...</p>
+    </div>
+    <table class="check-table" id="checkTable" style="display:none">
+      <thead id="tableHead"></thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+  </div>
+
+  <div class="progress-section">
+    <div class="progress-bar-container">
+      <div class="progress-label">今週の達成: <span id="progressText">⭐0/15</span></div>
+      <div class="progress-bar">
+        <div class="progress-fill" id="progressFill" style="width:0%"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" style="display:none;position:fixed;bottom:60px;left:50%;transform:translateX(-50%);
+    padding:8px 20px;border-radius:20px;color:white;font-size:0.85rem;z-index:999;
+    transition:opacity 0.3s;pointer-events:none;"></div>
+
+  <div class="footer">
+    学習チェックシート v3.2
+  </div>
+
+  <script>
+    // === 設定 ===
+    const GAS_URL = "https://script.google.com/macros/s/AKfycbyzkdcpzhyXEPMgl2zGs4lJvFBUL5O4c5XYVbqWEXUWsvnEt0CdA4oct_C4MM9OHI9lzg/exec";
+    const SECRET_KEY = "AYANATOYUSUKE";
+    const DAY_NAMES = ["月", "火", "水", "木", "金", "土", "日"];
+
+    // === 状態管理 ===
+    let currentWeekStart = getMonday(new Date());
+    let subjects = [];
+    let weekData = {};  // { "subjectId-dayOfWeek": true/false }
+    let dataLoaded = false;  // APIからデータ取得完了フラグ
+    let pendingWrites = {};  // 保存中のローカル変更 { key: value }
+
+    // === LocalStorageキャッシュ ===
+    function saveCache(key, data) {
+      try { localStorage.setItem('sc_' + key, JSON.stringify(data)); } catch(e) {}
+    }
+    function loadCache(key) {
+      try { const d = localStorage.getItem('sc_' + key); return d ? JSON.parse(d) : null; } catch(e) { return null; }
+    }
+
+    // === 今週の月曜日を取得 ===
+    function getMonday(date) {
+      const d = new Date(date);
+      const day = d.getDay();
+      const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+      d.setDate(diff);
+      d.setHours(0, 0, 0, 0);
+      return d;
+    }
+
+    // === 日付を YYYY-MM-DD 形式に ===
+    function formatDate(date) {
+      const y = date.getFullYear();
+      const m = String(date.getMonth() + 1).padStart(2, '0');
+      const d = String(date.getDate()).padStart(2, '0');
+      return `${y}-${m}-${d}`;
+    }
+
+    // === 週の表示を更新 ===
+    function updateWeekDisplay() {
+      const start = new Date(currentWeekStart);
+      const end = new Date(start);
+      end.setDate(end.getDate() + 6);
+
+      const fmt = (d) => `${d.getMonth() + 1}/${d.getDate()}`;
+      document.getElementById('weekDisplay').textContent = `${fmt(start)} 〜 ${fmt(end)}`;
+      document.getElementById('weekLabel').textContent = `${start.getFullYear()}年 第${getWeekNumber(start)}週`;
+    }
+
+    // === 週番号 ===
+    function getWeekNumber(date) {
+      const start = new Date(date.getFullYear(), 0, 1);
+      const diff = date - start;
+      return Math.ceil((diff / 86400000 + start.getDay() + 1) / 7);
+    }
+
+    // === 週を変更 ===
+    function changeWeek(delta) {
+      const d = new Date(currentWeekStart);
+      d.setDate(d.getDate() + delta * 7);
+      currentWeekStart = d;
+      loadData();
+    }
+
+    // === トースト表示 ===
+    function showToast(msg, color) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.style.background = color || '#333';
+      t.style.opacity = '1';
+      t.style.display = 'block';
+      clearTimeout(t._timer);
+      t._timer = setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.style.display = 'none', 300); }, 2000);
+    }
+
+    // === GAS API呼び出し (GET) ===
+    async function apiGet(action, params = {}) {
+      const url = new URL(GAS_URL);
+      url.searchParams.set('action', action);
+      url.searchParams.set('key', SECRET_KEY);
+      Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
+
+      const res = await fetch(url.toString(), { redirect: 'follow' });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      return await res.json();
+    }
+
+    // === GAS API書き込み（GETパラメータ送信、レスポンスは任意） ===
+    async function apiWrite(data) {
+      const url = new URL(GAS_URL);
+      url.searchParams.set('key', SECRET_KEY);
+      Object.entries(data).forEach(([k, v]) => url.searchParams.set(k, String(v)));
+      const res = await fetch(url.toString(), { redirect: 'follow' });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      // レスポンスをJSON解析試行（失敗しても書き込み自体は成功している可能性大）
+      try { return await res.json(); } catch(e) { return { success: true, note: 'response not JSON' }; }
+    }
+
+    // === データ読み込み ===
+    async function loadData() {
+      const loading = document.getElementById('loadingArea');
+      const table = document.getElementById('checkTable');
+      const errorArea = document.getElementById('errorArea');
+      errorArea.innerHTML = '';
+
+      const weekStart = formatDate(currentWeekStart);
+
+      // 週切替時にweekDataをクリア（前の週のデータ混入防止）
+      weekData = {};
+      pendingWrites = {};
+
+      // キャッシュがあれば即座に表示＆操作可能
+      const cachedSubjects = loadCache('subjects');
+      const cachedWeek = loadCache('week_' + weekStart);
+      if (cachedSubjects && cachedSubjects.length > 0) {
+        subjects = cachedSubjects;
+        weekData = cachedWeek || {};
+        dataLoaded = true;  // キャッシュあり→即操作可能
+        renderTable();
+        updateWeekDisplay();
+        updateProgress();
+        loading.style.display = 'none';
+        table.style.display = 'table';
+      } else {
+        dataLoaded = false;  // キャッシュなし→API待ち
+        loading.style.display = 'block';
+        table.style.display = 'none';
+      }
+
+      // バックグラウンドでAPIから最新データを取得
+      try {
+        const [subjectsRes, weekRes] = await Promise.all([
+          apiGet('getSubjects'),
+          apiGet('getWeekData', { weekStart: weekStart })
+        ]);
+
+        if (subjectsRes.error) throw new Error(subjectsRes.error);
+
+        subjects = subjectsRes.subjects;
+        saveCache('subjects', subjects);
+
+        // APIデータを正として採用（ローカルキャッシュより優先）
+        weekData = {};
+        if (weekRes.records) {
+          weekRes.records.forEach(r => {
+            weekData[`${r.subjectId}-${r.dayOfWeek}`] = r.done;
+          });
+        }
+        // 保存中のローカル変更のみ上書き（まだAPIに届いていない操作）
+        Object.assign(weekData, pendingWrites);
+        saveCache('week_' + weekStart, weekData);
+
+        dataLoaded = true;
+        renderTable();
+        updateWeekDisplay();
+        updateProgress();
+
+        loading.style.display = 'none';
+        table.style.display = 'table';
+        table.style.opacity = '1';
+
+      } catch (err) {
+        table.style.opacity = '1';
+        loading.style.display = 'none';
+        if (!cachedSubjects) {
+          errorArea.innerHTML = `<div class="error-msg">エラー: ${err.message}</div>`;
+        }
+        // キャッシュがある場合はエラーでも操作可能のまま
+        if (cachedSubjects) dataLoaded = true;
+      }
+    }
+
+    // === テーブル描画 ===
+    function renderTable() {
+      const thead = document.getElementById('tableHead');
+      const tbody = document.getElementById('tableBody');
+      const today = new Date();
+      const todayDow = (today.getDay() + 6) % 7; // 月=0, 日=6
+      const isThisWeek = formatDate(getMonday(today)) === formatDate(currentWeekStart);
+
+      // ヘッダー（日付＋曜日表示）
+      let headerHtml = '<tr><th class="subject-header">教科</th>';
+      DAY_NAMES.forEach((name, i) => {
+        const cls = (isThisWeek && i === todayDow) ? ' today-col' : '';
+        const d = new Date(currentWeekStart);
+        d.setDate(d.getDate() + i);
+        const dateStr = `${d.getMonth() + 1}/${d.getDate()}`;
+        headerHtml += `<th class="${cls}"><span style="font-size:0.7rem">${dateStr}</span><br>${name}</th>`;
+      });
+      headerHtml += '</tr>';
+      thead.innerHTML = headerHtml;
+
+      // ボディ
+      let bodyHtml = '';
+      // 未来判定: 今週なら今日より後の曜日、未来の週なら全曜日が未来
+      const isPastWeek = currentWeekStart < getMonday(today);
+      let prevCategory = '';
+      subjects.forEach(sub => {
+        // カテゴリヘッダー行（教科名の全角スペース前がカテゴリ）
+        const parts = sub.name.split('　');
+        const category = parts[0] || '';
+        const subName = parts.length > 1 ? parts.slice(1).join('　') : sub.name;
+        const catCls = `cat-${category}`;
+        if (category !== prevCategory) {
+          // カテゴリ内の全★状態を確認
+          const catSubs = subjects.filter(s => s.name.split('　')[0] === category);
+          const allStarred = catSubs.every(s => weekData[`${s.id}-7`] === true || weekData[`${s.id}-7`] === "TRUE");
+          const bulkIcon = allStarred ? 'リセット' : '⭐コンプ!';
+          const bulkCls = allStarred ? 'bulk-star-on' : 'bulk-star-off';
+          bodyHtml += `<tr class="category-header ${catCls}"><td class="cat-header" colspan="${DAY_NAMES.length + 1}">${category}<span class="bulk-star ${bulkCls}" onclick="toggleCategoryStars('${category}')">${bulkIcon}</span></td></tr>`;
+          prevCategory = category;
+        }
+
+        const starKey = `${sub.id}-7`;
+        const starred = weekData[starKey] === true || weekData[starKey] === "TRUE";
+        const starIcon = starred ? '⭐' : '☆';
+        const starCls = starred ? 'earned' : '';
+        bodyHtml += `<tr class="${catCls}"><td class="subject-name">${subName}<span class="star-badge ${starCls}" data-starid="${sub.id}" onclick="toggleCheck(${sub.id}, 7)">${starIcon}</span></td>`;
+        DAY_NAMES.forEach((_, dow) => {
+          const key = `${sub.id}-${dow}`;
+          const done = weekData[key] === true || weekData[key] === "TRUE";
+          const cls = (isThisWeek && dow === todayDow) ? ' today-col' : '';
+          const isFuture = isThisWeek ? dow > todayDow : !isPastWeek;
+          const icon = done ? '✅' : (isFuture ? '─' : '⬜');
+          const statusCls = done ? 'done' : (isFuture ? 'future' : 'not-done');
+          const onclick = isFuture ? '' : `onclick="toggleCheck(${sub.id}, ${dow})"`;
+          bodyHtml += `<td class="check-cell ${statusCls}${cls}" ${onclick}>${icon}</td>`;
+        });
+        bodyHtml += '</tr>';
+      });
+      tbody.innerHTML = bodyHtml;
+    }
+
+    // === チェック切り替え ===
+    async function toggleCheck(subjectId, dayOfWeek) {
+      // API取得完了前は操作不可
+      if (!dataLoaded) {
+        showToast('⏳ データ読み込み中...', '#666');
+        return;
+      }
+      const key = `${subjectId}-${dayOfWeek}`;
+      const currentVal = weekData[key] === true || weekData[key] === "TRUE";
+      const newVal = !currentVal;
+
+      // 即座にUIを更新（楽観的更新）
+      weekData[key] = newVal;
+      pendingWrites[key] = newVal;  // 保存完了まで追跡
+      saveCache('week_' + formatDate(currentWeekStart), weekData);
+
+      // 自動★チェック（日次チェック変更時のみ、★自体のトグルでは不要）
+      if (dayOfWeek !== 7) {
+        await checkAutoStar(subjectId);
+      }
+
+      renderTable();
+      updateProgress();
+
+      showToast('💾 保存中...', '#555');
+
+      // リトライ付き保存（最大2回）
+      let saved = false;
+      for (let attempt = 0; attempt < 2 && !saved; attempt++) {
+        try {
+          await apiWrite({
+            action: 'toggleTask',
+            weekStart: formatDate(currentWeekStart),
+            subjectId: subjectId,
+            dayOfWeek: dayOfWeek,
+            done: newVal
+          });
+          saved = true;
+        } catch (err) {
+          if (attempt === 0) {
+            await new Promise(r => setTimeout(r, 1000));
+          }
+        }
+      }
+
+      if (saved) {
+        delete pendingWrites[key];  // 保存完了→pending解除
+        showToast('✅ 保存しました', '#4caf50');
+      } else {
+        weekData[key] = currentVal;
+        delete pendingWrites[key];
+        saveCache('week_' + formatDate(currentWeekStart), weekData);
+        renderTable();
+        updateProgress();
+        showToast('❌ 保存に失敗しました', '#f44336');
+      }
+    }
+
+    // === 自動★判定（モノグサ:3回、授業予習:1回で自動★） ===
+    function getAutoStarThreshold(subName) {
+      if (subName.includes('モノグサ')) return 3;
+      if (subName.includes('授業予習')) return 1;
+      return null; // 自動★対象外
+    }
+
+    function countWeekChecks(subjectId) {
+      let count = 0;
+      for (let d = 0; d < 7; d++) {
+        const k = `${subjectId}-${d}`;
+        if (weekData[k] === true || weekData[k] === "TRUE") count++;
+      }
+      return count;
+    }
+
+    function isAutoStarMet(subjectId) {
+      const sub = subjects.find(s => s.id === subjectId);
+      if (!sub) return false;
+      const subName = sub.name.split('　').slice(1).join('　');
+      const threshold = getAutoStarThreshold(subName);
+      if (threshold === null) return false;
+      return countWeekChecks(subjectId) >= threshold;
+    }
+
+    async function checkAutoStar(subjectId) {
+      const starKey = `${subjectId}-7`;
+      const currentStar = weekData[starKey] === true || weekData[starKey] === "TRUE";
+      const shouldStar = isAutoStarMet(subjectId);
+
+      if (shouldStar && !currentStar) {
+        weekData[starKey] = true;
+        saveCache('week_' + formatDate(currentWeekStart), weekData);
+        // アニメーション付きで再描画後、対象の★にクラス追加
+        renderTable();
+        updateProgress();
+        setTimeout(() => {
+          const badge = document.querySelector(`[data-starid="${subjectId}"]`);
+          if (badge) badge.classList.add('just-earned');
+        }, 50);
+        try {
+          await apiWrite({ action: 'toggleTask', weekStart: formatDate(currentWeekStart), subjectId, dayOfWeek: 7, done: true });
+        } catch(e) {}
+      } else if (!shouldStar && currentStar) {
+        weekData[starKey] = false;
+        saveCache('week_' + formatDate(currentWeekStart), weekData);
+        try {
+          await apiWrite({ action: 'toggleTask', weekStart: formatDate(currentWeekStart), subjectId, dayOfWeek: 7, done: false });
+        } catch(e) {}
+      }
+    }
+
+    // === カテゴリ内★一括トグル ===
+    async function toggleCategoryStars(category) {
+      if (!dataLoaded) {
+        showToast('⏳ データ読み込み中...', '#666');
+        return;
+      }
+      const catSubs = subjects.filter(s => s.name.split('　')[0] === category);
+      const allStarred = catSubs.every(s => weekData[`${s.id}-7`] === true || weekData[`${s.id}-7`] === "TRUE");
+      const newVal = !allStarred;
+
+      // リセット時: 自動★条件を満たすものはスキップ
+      const targetsubs = newVal
+        ? catSubs  // コンプ時は全部ON
+        : catSubs.filter(s => !isAutoStarMet(s.id));  // リセット時は自動★対象外のみ
+
+      if (targetsubs.length === 0) {
+        showToast('🔒 条件達成済みのためリセット不可', '#6366f1');
+        return;
+      }
+
+      // 楽観的更新
+      targetsubs.forEach(s => { weekData[`${s.id}-7`] = newVal; });
+      saveCache('week_' + formatDate(currentWeekStart), weekData);
+      renderTable();
+      updateProgress();
+      showToast('💾 保存中...', '#555');
+
+      // 全件を順番に保存
+      let allSaved = true;
+      for (const sub of targetsubs) {
+        try {
+          await apiWrite({
+            action: 'toggleTask',
+            weekStart: formatDate(currentWeekStart),
+            subjectId: sub.id,
+            dayOfWeek: 7,
+            done: newVal
+          });
+        } catch (e) {
+          allSaved = false;
+        }
+      }
+
+      if (allSaved) {
+        showToast(`✅ ${category} ${newVal ? 'コンプ!' : 'リセット'}`, '#4caf50');
+      } else {
+        showToast('⚠️ 一部保存に失敗しました', '#f59e0b');
+      }
+    }
+
+    // === 進捗率更新（★ベース、理科/社会は隔週でどちらか一方でOK） ===
+    function updateProgress() {
+      if (subjects.length === 0) return;
+
+      // カテゴリごとの★数を集計
+      const catStars = {};
+      subjects.forEach(sub => {
+        const category = sub.name.split('　')[0] || '';
+        const starKey = `${sub.id}-7`;
+        const starred = weekData[starKey] === true || weekData[starKey] === "TRUE";
+        if (!catStars[category]) catStars[category] = { earned: 0, total: 0 };
+        catStars[category].total++;
+        if (starred) catStars[category].earned++;
+      });
+
+      // 達成数計算（理科/社会は良い方を採用）
+      let earned = 0;
+      let total = 0;
+      const rikaStars = catStars['理科'] || { earned: 0, total: 0 };
+      const shaStars = catStars['社会'] || { earned: 0, total: 0 };
+
+      for (const [cat, data] of Object.entries(catStars)) {
+        if (cat === '理科' || cat === '社会') continue; // 後で処理
+        earned += data.earned;
+        total += data.total;
+      }
+      // 理科/社会: どちらか1セット分を目標とし、良い方の達成を採用
+      const rikaShaTotal = Math.max(rikaStars.total, shaStars.total);
+      const rikaShaEarned = Math.max(rikaStars.earned, shaStars.earned);
+      total += rikaShaTotal;
+      earned += rikaShaEarned;
+
+      if (total === 0) return;
+      const pct = Math.round((earned / total) * 100);
+      document.getElementById('progressText').textContent = `${pct}% ⭐${earned}/${total}`;
+      document.getElementById('progressFill').style.width = `${pct}%`;
+      document.getElementById('progressFill').textContent = pct > 5 ? `${pct}%` : '';
+    }
+
+    // === タブ復帰時に最新データを再読込（複数ブラウザ競合対策） ===
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') {
+        loadData();
+      }
+    });
+
+    // === 初期化 ===
+    loadData();
+  </script>
+
+</body>
+</html>
