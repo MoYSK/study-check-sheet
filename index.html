@@ -15,6 +15,7 @@
       background: #f0f4ff;
       color: #333;
       min-height: 100vh;
+      overflow-x: hidden; /* 横スクロールのちらつき防止 */
     }
 
     .header {
@@ -219,7 +220,7 @@
 
     /* 進捗バー */
     .progress-section {
-      padding: 8px 16px;
+      padding: 8px 12px; /* 16pxから12pxに変更して上の表と揃える */
     }
 
     .progress-bar-container {
@@ -227,6 +228,7 @@
       border-radius: 8px;
       padding: 8px 12px;
       box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      overflow: hidden; /* 白い枠の外に粒子が出ないようにしてチラつきを防止 */
     }
 
     .progress-label {
@@ -235,26 +237,103 @@
       margin-bottom: 8px;
     }
 
+    .progress-bar-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+      padding-right: 45px; /* 合計%表示用のスペース */
+    }
+
     .progress-bar {
-      width: 100%;
+      flex-grow: 1;
       height: 24px;
       background: #e5e7eb;
       border-radius: 12px;
       overflow: hidden;
+      display: flex;
+      position: relative;
     }
 
-    .progress-fill {
+    /* 100%地点（11/15）のインジケーター */
+    .progress-bar::after {
+      content: '';
+      position: absolute;
+      left: 73.33%; /* 11/15 */
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background: rgba(0,0,0,0.1);
+      z-index: 5;
+    }
+
+    .progress-fill-base {
       height: 100%;
       background: linear-gradient(90deg, #10b981, #34d399);
-      border-radius: 12px;
       transition: width 0.5s ease;
       display: flex;
       align-items: center;
       justify-content: center;
       color: white;
-      font-size: 0.8rem;
+      font-size: 0.65rem;
       font-weight: bold;
-      min-width: 40px;
+      white-space: nowrap;
+      overflow: hidden;
+    }
+
+    .progress-fill-bonus {
+      height: 100%;
+      background: linear-gradient(90deg, #6366f1, #818cf8);
+      transition: width 0.5s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 0.65rem;
+      font-weight: bold;
+      white-space: nowrap;
+      overflow: hidden;
+      border-left: 1px solid rgba(255,255,255,0.3);
+    }
+
+    .progress-total-pct {
+      position: absolute;
+      right: 0;
+      font-size: 0.85rem;
+      font-weight: bold;
+      color: #374151;
+      width: 45px;
+      text-align: center;
+    }
+
+    /* キラキラエフェクト (案3) */
+    .glitter-container {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      display: none;
+      z-index: 20;
+      overflow: hidden; /* 粒子の飛び出しによるスクロールバー防止 */
+    }
+    .celebration-mode .glitter-container {
+      display: block;
+    }
+    .celebration-mode .progress-bar {
+      box-shadow: 0 0 15px rgba(255, 215, 0, 0.4);
+    }
+    .particle {
+      position: absolute;
+      background: gold;
+      border-radius: 50%;
+      pointer-events: none;
+      opacity: 0;
+    }
+    @keyframes sparkle {
+      0% { transform: translate(0, 0) scale(0); opacity: 0; }
+      50% { opacity: 1; }
+      100% { transform: translate(var(--dx), var(--dy)) scale(1.2); opacity: 0; }
     }
 
     /* ローディング */
@@ -323,9 +402,14 @@
 
   <div class="progress-section">
     <div class="progress-bar-container">
-      <div class="progress-label">今週の達成: <span id="progressText">⭐0/15</span></div>
-      <div class="progress-bar">
-        <div class="progress-fill" id="progressFill" style="width:0%"></div>
+      <div class="progress-label">今週の達成: <span id="progressText">⭐0/11 (+0)</span></div>
+      <div id="progressWrapper" class="progress-bar-wrapper">
+        <div class="progress-bar">
+          <div class="progress-fill-base" id="progressFillBase" style="width:0%"></div>
+          <div class="progress-fill-bonus" id="progressFillBonus" style="width:0%"></div>
+        </div>
+        <div class="progress-total-pct" id="progressTotalPct">0%</div>
+        <div class="glitter-container" id="glitterContainer"></div>
       </div>
     </div>
   </div>
@@ -335,7 +419,7 @@
     transition:opacity 0.3s;pointer-events:none;"></div>
 
   <div class="footer">
-    学習チェックシート v3.4
+    学習チェックシート v3.6
   </div>
 
   <script>
@@ -350,6 +434,37 @@
     let weekData = {};  // { "subjectId-dayOfWeek": true/false }
     let dataLoaded = false;  // APIからデータ取得完了フラグ
     let pendingWrites = {};  // 保存中のローカル変更 { key: value }
+    let particleTimer = null;
+
+    // === 演出コントロール ===
+    function startCelebration() {
+      if (particleTimer) return;
+      document.getElementById('progressWrapper').classList.add('celebration-mode');
+      const container = document.getElementById('glitterContainer');
+      particleTimer = setInterval(() => {
+        const p = document.createElement('div');
+        p.className = 'particle';
+        const size = Math.random() * 5 + 3 + 'px';
+        p.style.width = size;
+        p.style.height = size;
+        p.style.left = Math.random() * 100 + '%';
+        p.style.top = Math.random() * 100 + '%';
+        p.style.setProperty('--dx', (Math.random() - 0.5) * 80 + 'px');
+        p.style.setProperty('--dy', (Math.random() - 0.5) * 80 + 'px');
+        p.style.animation = `sparkle ${Math.random() * 0.8 + 0.5}s linear forwards`;
+        container.appendChild(p);
+        setTimeout(() => p.remove(), 1300);
+      }, 100);
+    }
+
+    function stopCelebration() {
+      document.getElementById('progressWrapper').classList.remove('celebration-mode');
+      if (particleTimer) {
+        clearInterval(particleTimer);
+        particleTimer = null;
+      }
+      document.getElementById('glitterContainer').innerHTML = '';
+    }
 
     // === LocalStorageキャッシュ ===
     function saveCache(key, data) {
@@ -740,43 +855,54 @@
       }
     }
 
-    // === 進捗率更新（★ベース、理科/社会は隔週でどちらか一方でOK） ===
+    // === 進捗率更新（標準11個＋ボーナス4個） ===
     function updateProgress() {
       if (subjects.length === 0) return;
 
-      // カテゴリごとの★数を集計
-      const catStars = {};
+      let baseEarned = 0;
+      let bonusEarned = 0;
+
       subjects.forEach(sub => {
         const category = sub.name.split('　')[0] || '';
         const starKey = `${sub.id}-7`;
         const starred = weekData[starKey] === true || weekData[starKey] === "TRUE";
-        if (!catStars[category]) catStars[category] = { earned: 0, total: 0 };
-        catStars[category].total++;
-        if (starred) catStars[category].earned++;
+        
+        if (starred) {
+          if (category === 'テスト復習') {
+            bonusEarned++;
+          } else {
+            baseEarned++;
+          }
+        }
       });
 
-      // 達成数計算（理科/社会は良い方を採用）
-      let earned = 0;
-      let total = 0;
-      const rikaStars = catStars['理科'] || { earned: 0, total: 0 };
-      const shaStars = catStars['社会'] || { earned: 0, total: 0 };
+      const totalEarned = baseEarned + bonusEarned;
+      const totalPct = Math.round((totalEarned / 11) * 100);
+      
+      // テキスト表示
+      document.getElementById('progressText').textContent = `⭐${baseEarned}/11 (+${bonusEarned})`;
+      document.getElementById('progressTotalPct').textContent = `${totalPct}%`;
 
-      for (const [cat, data] of Object.entries(catStars)) {
-        if (cat === '理科' || cat === '社会') continue; // 後で処理
-        earned += data.earned;
-        total += data.total;
+      // バーの幅計算（全体を15個分として配分）
+      const baseWidth = (baseEarned / 15) * 100;
+      const bonusWidth = (bonusEarned / 15) * 100;
+
+      const baseEl = document.getElementById('progressFillBase');
+      const bonusEl = document.getElementById('progressFillBonus');
+
+      baseEl.style.width = `${baseWidth}%`;
+      baseEl.textContent = baseEarned > 0 ? `${Math.round(baseEarned/11*100)}%` : '';
+      
+      bonusEl.style.width = `${bonusWidth}%`;
+      // テスト復習分も星1つ=1/11として計算（通常の割合と合わせる） (v3.6.1)
+      bonusEl.textContent = bonusEarned > 0 ? `${Math.round(bonusEarned/11*100)}%` : '';
+
+      // 100%達成時の演出 (v3.6)
+      if (totalEarned >= 11) {
+        startCelebration();
+      } else {
+        stopCelebration();
       }
-      // 理科/社会: どちらか1セット分を目標とし、良い方の達成を採用
-      const rikaShaTotal = Math.max(rikaStars.total, shaStars.total);
-      const rikaShaEarned = Math.max(rikaStars.earned, shaStars.earned);
-      total += rikaShaTotal;
-      earned += rikaShaEarned;
-
-      if (total === 0) return;
-      const pct = Math.round((earned / total) * 100);
-      document.getElementById('progressText').textContent = `${pct}% ⭐${earned}/${total}`;
-      document.getElementById('progressFill').style.width = `${pct}%`;
-      document.getElementById('progressFill').textContent = pct > 5 ? `${pct}%` : '';
     }
 
     // === タブ復帰時に最新データを再読込（複数ブラウザ競合対策） ===
