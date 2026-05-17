@@ -139,13 +139,30 @@
     .cat-テスト復習 td.cat-header { background: #f3f4f6; color: #374151; border-bottom: 1px solid #d1d5db; }
     .cat-テスト復習 td.subject-name { background: #f9fafb; border-left: 3px solid #9ca3af; }
 
+    .star-icon {
+      fill: currentColor;
+      width: 1em;
+      height: 1em;
+      vertical-align: middle;
+      display: inline-block;
+    }
+
     .star-badge {
       cursor: pointer;
       font-size: 0.85rem;
-      margin-left: 2px;
+      margin-left: 4px;
       display: inline-block;
       transition: transform 0.2s;
     }
+    .gold { color: #fbbf24 !important; }
+    .silver { color: #cbd5e1 !important; }
+    .red { color: #ef4444 !important; }
+    .blue { color: #60a5fa !important; }
+
+    .star-badge.gold { color: #fbbf24 !important; }
+    .star-badge.silver { color: #cbd5e1 !important; }
+    .star-badge.red { color: #ef4444 !important; }
+    .star-badge.blue { color: #60a5fa !important; }
 
     .bulk-star {
       cursor: pointer;
@@ -158,11 +175,13 @@
       vertical-align: middle;
     }
     .bulk-star:active { opacity: 1; transform: scale(0.95); }
+    .bulk-star.red { color: #ef4444; }
+    .bulk-star.gold { color: #fbbf24; }
     .bulk-star-off { color: #6366f1; }
     .bulk-star-on { color: #dc2626; }
     .star-badge:active { transform: scale(1.3); }
     .star-badge.earned {
-      filter: drop-shadow(0 0 3px #f59e0b);
+      font-weight: bold;
     }
     .star-badge.just-earned {
       animation: starPop 0.3s ease-out;
@@ -254,18 +273,6 @@
       position: relative;
     }
 
-    /* 100%地点（11/15）のインジケーター */
-    .progress-bar::after {
-      content: '';
-      position: absolute;
-      left: 73.33%; /* 11/15 */
-      top: 0;
-      bottom: 0;
-      width: 2px;
-      background: rgba(0,0,0,0.1);
-      z-index: 5;
-    }
-
     .progress-fill-base {
       height: 100%;
       background: linear-gradient(90deg, #10b981, #34d399);
@@ -282,7 +289,22 @@
 
     .progress-fill-bonus {
       height: 100%;
-      background: linear-gradient(90deg, #6366f1, #818cf8);
+      background: linear-gradient(90deg, #ef4444, #f87171);
+      transition: width 0.5s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 0.65rem;
+      font-weight: bold;
+      white-space: nowrap;
+      overflow: hidden;
+      border-left: 1px solid rgba(255,255,255,0.3);
+    }
+
+    .progress-fill-monogusa {
+      height: 100%;
+      background: linear-gradient(90deg, #60a5fa, #93c5fd);
       transition: width 0.5s ease;
       display: flex;
       align-items: center;
@@ -453,6 +475,7 @@
       <div id="progressWrapper" class="progress-bar-wrapper">
         <div class="progress-bar">
           <div class="progress-fill-base" id="progressFillBase" style="width:0%"></div>
+          <div class="progress-fill-monogusa" id="progressFillMonogusa" style="width:0%"></div>
           <div class="progress-fill-bonus" id="progressFillBonus" style="width:0%"></div>
         </div>
         <div class="progress-total-pct" id="progressTotalPct">0%</div>
@@ -473,7 +496,7 @@
   </div>
 
   <div class="footer">
-    学習チェックシート v3.7.5
+    学習チェックシート v3.8.0
   </div>
 
 
@@ -733,17 +756,35 @@
           // カテゴリ内の全★状態を確認
           const catSubs = subjects.filter(s => s.name.split('　')[0] === category);
           const allStarred = catSubs.every(s => weekData[`${s.id}-7`] === true || weekData[`${s.id}-7`] === "TRUE");
-          const bulkIcon = allStarred ? 'リセット' : '⭐コンプ!';
-          const bulkCls = allStarred ? 'bulk-star-on' : 'bulk-star-off';
+          const svgStar = `<svg class="star-icon" viewBox="0 0 24 24"><path d="M12 .587l3.668 7.568 8.332 1.151-6.064 5.828 1.48 8.279-7.416-3.967-7.417 3.967 1.481-8.279-6.064-5.828 8.332-1.151z"/></svg>`;
+          const bulkIcon = allStarred ? 'リセット' : `${svgStar} コンプ!`;
+          const bulkCls = (allStarred ? 'bulk-star-on' : 'bulk-star-off') + 
+                         (category === 'テスト復習' ? ' red' : ' gold');
           bodyHtml += `<tr class="category-header ${catCls}"><td class="cat-header" colspan="${DAY_NAMES.length + 1}">${category}<span class="bulk-star ${bulkCls}" onclick="toggleCategoryStars('${category}')">${bulkIcon}</span></td></tr>`;
           prevCategory = category;
         }
 
+        const isMonogusa = sub.name.includes('モノグサ');
         const starKey = `${sub.id}-7`;
         const starred = weekData[starKey] === true || weekData[starKey] === "TRUE";
-        const starIcon = starred ? '⭐' : '☆';
-        const starCls = starred ? 'earned' : '';
-        bodyHtml += `<tr class="${catCls}"><td class="subject-name">${subName}<span class="star-badge ${starCls}" data-starid="${sub.id}" onclick="toggleCheck(${sub.id}, 7)">${starIcon}</span></td>`;
+        
+        let starIcon, starCls;
+        const svgStar = `<svg class="star-icon" viewBox="0 0 24 24"><path d="M12 .587l3.668 7.568 8.332 1.151-6.064 5.828 1.48 8.279-7.416-3.967-7.417 3.967 1.481-8.279-6.064-5.828 8.332-1.151z"/></svg>`;
+        
+        if (isMonogusa) {
+          const count = countWeekChecks(sub.id);
+          starIcon = count > 0 ? `${svgStar}×${count}` : '○';
+          starCls = count > 0 ? 'blue earned' : 'blue';
+        } else if (category === 'テスト復習') {
+          starIcon = starred ? svgStar : '☆';
+          starCls = starred ? 'red earned' : 'red';
+        } else {
+          starIcon = starred ? svgStar : '☆';
+          starCls = starred ? 'gold earned' : 'gold';
+        }
+        
+        const onclickAttr = isMonogusa ? '' : `onclick="toggleCheck(${sub.id}, 7)"`;
+        bodyHtml += `<tr class="${catCls}"><td class="subject-name">${subName}<span class="star-badge ${starCls}" data-starid="${sub.id}" ${onclickAttr}>${starIcon}</span></td>`;
         DAY_NAMES.forEach((_, dow) => {
           const key = `${sub.id}-${dow}`;
           const done = weekData[key] === true || weekData[key] === "TRUE";
@@ -933,43 +974,71 @@
 
       let baseEarned = 0;
       let bonusEarned = 0;
+      let monogusaPoints = 0;
 
       subjects.forEach(sub => {
         const category = sub.name.split('　')[0] || '';
-        const starKey = `${sub.id}-7`;
-        const starred = weekData[starKey] === true || weekData[starKey] === "TRUE";
+        const isMonogusa = sub.name.includes('モノグサ');
         
-        if (starred) {
-          if (category === 'テスト復習') {
-            bonusEarned++;
-          } else {
-            baseEarned++;
+        if (isMonogusa) {
+          monogusaPoints += countWeekChecks(sub.id);
+        } else {
+          const starKey = `${sub.id}-7`;
+          const starred = weekData[starKey] === true || weekData[starKey] === "TRUE";
+          
+          if (starred) {
+            if (category === 'テスト復習') {
+              bonusEarned++;
+            } else {
+              baseEarned++;
+            }
           }
         }
       });
 
-      const totalEarned = baseEarned + bonusEarned;
-      const totalPct = Math.round((totalEarned / 11) * 100);
+      const totalEarned = baseEarned + bonusEarned + (monogusaPoints / 3);
+      const totalPct = Math.round((totalEarned / 8) * 100); // 達成率の基準は8のまま
       
       // テキスト表示
-      document.getElementById('progressText').textContent = `⭐${baseEarned}/11 (+${bonusEarned})`;
+      const svgStar = `<svg class="star-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M12 .587l3.668 7.568 8.332 1.151-6.064 5.828 1.48 8.279-7.416-3.967-7.417 3.967 1.481-8.279-6.064-5.828 8.332-1.151z"/></svg>`;
+      const blueCount = monogusaPoints; // モノグサの実施回数そのもの
+      const progressText = document.getElementById('progressText');
+      progressText.innerHTML = `<span class="gold">${svgStar}</span>x${baseEarned}, <span class="blue">${svgStar}</span>x${blueCount}, <span class="red">${svgStar}</span>x${bonusEarned}`;
       document.getElementById('progressTotalPct').textContent = `${totalPct}%`;
 
       // バーの幅計算
-      const baseWidth = (baseEarned / 15) * 100;
-      const bonusWidth = (bonusEarned / 15) * 100;
+      // 8ユニットで全体の75%（ゴール）となるように計算
+      const baseContribution = baseEarned;
+      const monoContribution = monogusaPoints / 3;
+      const bonusContribution = bonusEarned;
+      
+      const totalUnits = baseContribution + monoContribution + bonusContribution;
+      const scale = Math.max(8, totalUnits); 
+
+      // 目標ラインの動的計算はCSSの擬似要素ではできないため、一旦マーカーはCSS固定のままにする
+      
+      const baseWidth = (baseContribution / scale) * 100;
+      const monoWidth = (monoContribution / scale) * 100;
+      const bonusWidth = (bonusContribution / scale) * 100;
 
       const baseEl = document.getElementById('progressFillBase');
+      const monoEl = document.getElementById('progressFillMonogusa');
       const bonusEl = document.getElementById('progressFillBonus');
 
       baseEl.style.width = `${baseWidth}%`;
-      baseEl.textContent = baseEarned > 0 ? `${Math.round(baseEarned/11*100)}%` : '';
+      baseEl.textContent = baseWidth >= 2 ? `${Math.round((baseContribution / 8) * 100)}%` : '';
+      
+      monoEl.style.width = `${monoWidth}%`;
+      monoEl.textContent = monoWidth >= 2 ? `${Math.round((monoContribution / 8) * 100)}%` : '';
       
       bonusEl.style.width = `${bonusWidth}%`;
-      bonusEl.textContent = bonusEarned > 0 ? `${Math.round(bonusEarned/11*100)}%` : '';
+      bonusEl.textContent = bonusWidth >= 2 ? `${Math.round((bonusContribution / 8) * 100)}%` : '';
 
+
+
+      
       // 100%達成時の演出 (v3.6)
-      if (totalEarned >= 11) {
+      if (totalEarned >= 8) {
         startCelebration();
         // チケット獲得チェック (v3.7)
         const weekKey = formatDate(currentWeekStart);
